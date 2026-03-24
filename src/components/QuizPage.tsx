@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import type { Question, ImageCrop } from "@/types";
+import type { Question } from "@/types";
 
 interface QuizPageProps {
   questions: Question[];
@@ -12,52 +12,18 @@ interface QuizPageProps {
 const ITEMS_PER_PAGE = 5;
 const MAX_VISIBLE_PAGES = 10;
 
-/** 크롭된 이미지 + 클릭 확대 */
-function QuestionImage({ src, crop, onClickImage }: {
+/** 참고 이미지 썸네일 + 클릭 확대 */
+function QuestionImage({ src, onClickImage }: {
   src: string;
-  crop?: ImageCrop;
-  onClickImage: (src: string, crop?: ImageCrop) => void;
+  onClickImage: (src: string) => void;
 }) {
-  const hasCrop = crop && crop.width > 0 && crop.height > 0 && crop.width < 100;
-
-  if (hasCrop) {
-    // CSS clip-path + transform으로 크롭 영역만 표시
-    const scale = 100 / crop.width;
-    const translateX = -crop.left * scale;
-    const translateY = -crop.top * scale;
-
-    return (
-      <div className="mb-4 ml-4">
-        <div
-          className="relative overflow-hidden rounded-lg border border-white/10 bg-black/20 cursor-zoom-in hover:border-white/25 transition-colors"
-          style={{ maxWidth: "400px", aspectRatio: `${crop.width} / ${crop.height}` }}
-          onClick={() => onClickImage(src, crop)}
-        >
-          <img
-            src={src}
-            alt="문제 참고 이미지"
-            className="absolute top-0 left-0 w-full h-full object-cover"
-            style={{
-              width: `${scale * 100}%`,
-              height: `${scale * 100}%`,
-              objectFit: "cover",
-              objectPosition: `${crop.left}% ${crop.top}%`,
-              transform: `translate(${translateX}%, ${translateY}%)`,
-            }}
-          />
-        </div>
-        <p className="text-[10px] text-zinc-600 mt-1 ml-1">클릭하여 확대</p>
-      </div>
-    );
-  }
-
   return (
     <div className="mb-4 ml-4">
       <img
         src={src}
         alt="문제 참고 이미지"
-        className="max-w-full max-h-48 rounded-lg border border-white/10 object-contain bg-black/20 cursor-zoom-in hover:border-white/25 transition-colors"
-        onClick={() => onClickImage(src, crop)}
+        className="max-w-[300px] max-h-48 rounded-lg border border-white/10 object-contain bg-black/20 cursor-zoom-in hover:border-white/25 hover:shadow-lg transition-all"
+        onClick={() => onClickImage(src)}
       />
       <p className="text-[10px] text-zinc-600 mt-1 ml-1">클릭하여 확대</p>
     </div>
@@ -65,9 +31,8 @@ function QuestionImage({ src, crop, onClickImage }: {
 }
 
 /** 이미지 라이트박스 모달 */
-function ImageLightbox({ src, crop, onClose }: {
+function ImageLightbox({ src, onClose }: {
   src: string;
-  crop?: ImageCrop;
   onClose: () => void;
 }) {
   return (
@@ -81,18 +46,6 @@ function ImageLightbox({ src, crop, onClose }: {
           alt="확대 이미지"
           className="max-w-[90vw] max-h-[85vh] object-contain rounded-xl border border-white/20 shadow-2xl"
         />
-        {/* 크롭 영역 하이라이트 */}
-        {crop && crop.width > 0 && crop.width < 100 && (
-          <div
-            className="absolute border-2 border-amber-400/60 rounded bg-amber-400/10 pointer-events-none"
-            style={{
-              top: `${crop.top}%`,
-              left: `${crop.left}%`,
-              width: `${crop.width}%`,
-              height: `${crop.height}%`,
-            }}
-          />
-        )}
         <button
           onClick={onClose}
           className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-zinc-800 border border-white/20 flex items-center justify-center text-zinc-300 hover:text-white hover:bg-zinc-700 transition-colors"
@@ -110,10 +63,10 @@ export default function QuizPage({ questions, sessionId, onBack }: QuizPageProps
   const [currentPage, setCurrentPage] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [submitted, setSubmitted] = useState(false);
-  const [lightbox, setLightbox] = useState<{ src: string; crop?: ImageCrop } | null>(null);
+  const [lightbox, setLightbox] = useState<{ src: string } | null>(null);
 
-  const openLightbox = useCallback((src: string, crop?: ImageCrop) => {
-    setLightbox({ src, crop });
+  const openLightbox = useCallback((src: string) => {
+    setLightbox({ src });
   }, []);
 
   const closeLightbox = useCallback(() => {
@@ -281,7 +234,6 @@ export default function QuizPage({ questions, sessionId, onBack }: QuizPageProps
               {q.image_url && q.image_url.startsWith("data:") && (
                 <QuestionImage
                   src={q.image_url}
-                  crop={q.image_crop}
                   onClickImage={openLightbox}
                 />
               )}
@@ -489,7 +441,6 @@ export default function QuizPage({ questions, sessionId, onBack }: QuizPageProps
       {lightbox && (
         <ImageLightbox
           src={lightbox.src}
-          crop={lightbox.crop}
           onClose={closeLightbox}
         />
       )}
