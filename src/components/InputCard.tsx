@@ -40,7 +40,19 @@ export default function InputCard({ onGenerate, isLoading }: InputCardProps) {
 
     if (imageFiles.length === 0) return;
 
-    const promises = imageFiles.map(
+    // 최대 5장 제한
+    const currentCount = images.length;
+    const maxAdd = 5 - currentCount;
+    if (maxAdd <= 0) {
+      alert("이미지는 최대 5장까지 선택할 수 있습니다");
+      return;
+    }
+    const filesToProcess = imageFiles.slice(0, maxAdd);
+    if (filesToProcess.length < imageFiles.length) {
+      alert(`최대 5장 제한으로 ${filesToProcess.length}장만 추가됩니다`);
+    }
+
+    const promises = filesToProcess.map(
       (file) =>
         new Promise<string>((resolve) => {
           const reader = new FileReader();

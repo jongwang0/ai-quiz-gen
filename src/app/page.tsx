@@ -96,7 +96,7 @@ ${rules.split("\n").map((r) => `- ${r}`).join("\n")}
     try {
       const body: Record<string, unknown> = {};
       if (data.text) body.text = data.text;
-      if (data.images && data.images.length > 0) body.image = data.images[0]; // 첫 번째 이미지 사용
+      if (data.images && data.images.length > 0) body.images = data.images;
       const customPrompt = buildPrompt();
       if (customPrompt) body.prompt = customPrompt;
 
