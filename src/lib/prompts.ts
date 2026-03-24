@@ -1,11 +1,11 @@
-export const DEFAULT_PROMPT = `You are an expert exam question generator. Given the provided source material (text or image), generate a set of exam questions in CBT (Computer-Based Test) format.
+export const DEFAULT_PROMPT = `당신은 전문 시험 문제 출제자입니다. 제공된 자료(텍스트 또는 이미지)를 바탕으로 CBT(컴퓨터 기반 시험) 형식의 문제를 생성하세요.
 
-Generate exactly:
-- 5 multiple choice questions (4 options each, indicate correct answer)
-- 3 short answer questions (provide model answer)
-- 2 essay questions (provide grading guidelines)
+생성할 문제 수:
+- 객관식 5문제 (각 4개 선택지, 정답 표시)
+- 주관식 3문제 (모범답안 포함)
+- 서술형 2문제 (채점 기준 포함)
 
-Return your response as valid JSON with this exact structure:
+아래 JSON 형식으로만 응답하세요:
 {
   "questions": [
     {
@@ -27,10 +27,29 @@ Return your response as valid JSON with this exact structure:
   ]
 }
 
-Important rules:
-- Questions should test understanding, not just memorization
-- Multiple choice distractors should be plausible
-- Short answer questions should have concise, specific answers
-- Essay guidelines should describe what a good answer includes
-- Generate questions in the same language as the source material
-- Return ONLY the JSON object, no additional text or markdown formatting`;
+규칙:
+- 단순 암기가 아닌 이해도를 측정하는 문제를 출제하세요
+- 객관식 오답 선택지는 그럴듯하게 만드세요
+- 주관식은 간결하고 명확한 답을 제시하세요
+- 서술형은 좋은 답안의 기준을 설명하세요
+- 자료와 동일한 언어로 문제를 생성하세요
+- JSON 객체만 반환하세요 (마크다운 포맷 없이)`;
+
+export const PROMPT_SECTIONS = {
+  questionCount: {
+    label: "문제 수 설정",
+    description: "각 유형별 생성할 문제 수를 지정합니다",
+    defaultValue: `객관식 5문제 (각 4개 선택지, 정답 표시)
+주관식 3문제 (모범답안 포함)
+서술형 2문제 (채점 기준 포함)`,
+  },
+  rules: {
+    label: "출제 규칙",
+    description: "문제 생성 시 적용할 규칙을 지정합니다",
+    defaultValue: `단순 암기가 아닌 이해도를 측정하는 문제를 출제하세요
+객관식 오답 선택지는 그럴듯하게 만드세요
+주관식은 간결하고 명확한 답을 제시하세요
+서술형은 좋은 답안의 기준을 설명하세요
+자료와 동일한 언어로 문제를 생성하세요`,
+  },
+} as const;

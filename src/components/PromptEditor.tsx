@@ -1,16 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { DEFAULT_PROMPT } from "@/lib/prompts";
+import { PROMPT_SECTIONS } from "@/lib/prompts";
 
 interface PromptEditorProps {
-  value: string;
-  onChange: (prompt: string) => void;
+  questionCount: string;
+  rules: string;
+  onChangeQuestionCount: (value: string) => void;
+  onChangeRules: (value: string) => void;
+  isModified: boolean;
+  onReset: () => void;
 }
 
-export default function PromptEditor({ value, onChange }: PromptEditorProps) {
+export default function PromptEditor({
+  questionCount,
+  rules,
+  onChangeQuestionCount,
+  onChangeRules,
+  isModified,
+  onReset,
+}: PromptEditorProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const isModified = value !== DEFAULT_PROMPT;
 
   return (
     <div className="mb-6">
@@ -38,25 +48,48 @@ export default function PromptEditor({ value, onChange }: PromptEditorProps) {
       </button>
 
       {isOpen && (
-        <div className="mt-3 glass p-4">
-          <div className="flex items-center justify-between mb-3">
+        <div className="mt-3 glass p-5 space-y-5">
+          <div className="flex items-center justify-between">
             <p className="text-xs text-zinc-500">
-              AI에게 전달되는 시스템 프롬프트를 수정할 수 있습니다
+              문제 생성 조건을 자유롭게 수정할 수 있습니다
             </p>
             {isModified && (
               <button
-                onClick={() => onChange(DEFAULT_PROMPT)}
+                onClick={onReset}
                 className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
               >
                 기본값 복원
               </button>
             )}
           </div>
-          <textarea
-            className="w-full min-h-[200px] bg-white/5 border border-white/10 rounded-xl p-4 text-sm text-zinc-300 placeholder-zinc-600 resize-y focus:outline-none focus:border-white/25 focus:bg-white/[0.07] transition-all font-mono leading-relaxed"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-          />
+
+          {/* 문제 수 설정 */}
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-2">
+              {PROMPT_SECTIONS.questionCount.label}
+            </label>
+            <p className="text-xs text-zinc-600 mb-2">{PROMPT_SECTIONS.questionCount.description}</p>
+            <textarea
+              className="w-full min-h-[80px] bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-zinc-300 placeholder-zinc-600 resize-none focus:outline-none focus:border-white/25 focus:bg-white/[0.07] transition-all leading-relaxed"
+              value={questionCount}
+              onChange={(e) => onChangeQuestionCount(e.target.value)}
+              placeholder="예: 객관식 10문제, 주관식 5문제"
+            />
+          </div>
+
+          {/* 출제 규칙 */}
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-2">
+              {PROMPT_SECTIONS.rules.label}
+            </label>
+            <p className="text-xs text-zinc-600 mb-2">{PROMPT_SECTIONS.rules.description}</p>
+            <textarea
+              className="w-full min-h-[120px] bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-zinc-300 placeholder-zinc-600 resize-none focus:outline-none focus:border-white/25 focus:bg-white/[0.07] transition-all leading-relaxed"
+              value={rules}
+              onChange={(e) => onChangeRules(e.target.value)}
+              placeholder="예: 난이도를 높게 설정하세요"
+            />
+          </div>
         </div>
       )}
     </div>
