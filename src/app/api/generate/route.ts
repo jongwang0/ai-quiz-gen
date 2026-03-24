@@ -96,23 +96,10 @@ export async function POST(request: NextRequest) {
     if (!essayMatch || parseInt(essayMatch[1]) > 0) allowedTypes.add("essay");
     questions = questions.filter(q => allowedTypes.has(q.type));
 
-    // image_url 필드를 실제 이미지 데이터로 매핑
-    if (images && images.length > 0) {
-      for (const q of questions) {
-        if (q.image_url) {
-          const match = q.image_url.match(/image_(\d+)/);
-          if (match) {
-            const idx = parseInt(match[1], 10) - 1;
-            if (idx >= 0 && idx < images.length) {
-              q.image_url = images[idx];
-            } else {
-              q.image_url = undefined;
-            }
-          } else {
-            q.image_url = undefined;
-          }
-        }
-      }
+    // AI가 image_url을 반환해도 서버에서 제거
+    for (const q of questions) {
+      q.image_url = undefined;
+      q.image_crop = undefined;
     }
 
     return NextResponse.json({ questions });

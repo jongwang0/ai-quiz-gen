@@ -13,7 +13,6 @@ export const PROMPT_SECTIONS = {
 객관식 오답 선택지는 그럴듯하게 만드세요
 주관식은 간결하고 명확한 답을 제시하세요
 서술형은 좋은 답안의 기준을 설명하세요
-자료와 동일한 언어로 문제를 생성하세요
 자료와 동일한 언어로 문제를 생성하세요`,
   },
 } as const;
@@ -39,8 +38,7 @@ function buildJsonSchema(counts: { mc: number; sa: number; essay: number }): str
       "type": "multiple_choice",
       "question": "...",
       "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
-      "answer": "A",
-      "image_url": null
+      "answer": "A"
     }`);
   }
 
@@ -48,8 +46,7 @@ function buildJsonSchema(counts: { mc: number; sa: number; essay: number }): str
     examples.push(`    {
       "type": "short_answer",
       "question": "...",
-      "answer": "...",
-      "image_url": null
+      "answer": "..."
     }`);
   }
 
@@ -57,8 +54,7 @@ function buildJsonSchema(counts: { mc: number; sa: number; essay: number }): str
     examples.push(`    {
       "type": "essay",
       "question": "...",
-      "guidelines": "...",
-      "image_url": null
+      "guidelines": "..."
     }`);
   }
 
@@ -99,7 +95,7 @@ ${rulesText.split("\n").map((r) => `- ${r}`).join("\n")}
 ${exclusionRules}
 - 문제 순서를 무작위로 섞어서 출제하세요 (자료의 순서대로 출제하지 마세요)
 - 여러 이미지가 제공된 경우 모든 이미지의 내용을 골고루 반영하세요
-- 이미지 참조 문제 규칙: 이미지에 그래프, 차트, 도표, 다이어그램, 회로도, 지도 등 "텍스트만으로 설명할 수 없는 시각적 도형/그림"이 포함된 경우에만 image_url을 지정하세요. 단순히 글씨/텍스트만 있는 이미지 페이지는 참조하지 마세요. image_url 값은 "image_1" 형태입니다. image_crop은 사용하지 마세요(null로 설정). 이미지 참조 문제는 전체 문제 수의 10% 이하로 제한하세요. 대부분의 문제는 이미지 없이 텍스트만으로 출제하세요
+- 이미지의 텍스트 내용을 읽고 그 내용을 바탕으로 문제를 출제하세요. 이미지 자체를 문제에 첨부하지 마세요
 - 정확히 지정된 문제 수만큼만 생성하세요. 그 이상 생성하지 마세요
 - JSON 객체만 반환하세요 (마크다운 포맷 없이)`;
 }

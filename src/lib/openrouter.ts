@@ -34,7 +34,7 @@ export async function generateQuestions(params: {
     }
     contentParts.push({
       type: "text",
-      text: `위 ${params.images.length}장의 이미지(image_1~image_${params.images.length})를 분석하여 문제를 생성하세요. 모든 이미지의 내용을 골고루 반영해야 합니다. 그래프, 도표, 다이어그램 등 시각 자료가 있는 이미지는 image_url 필드에 "image_N" 형태로 참조하세요.`,
+      text: `위 ${params.images.length}장의 이미지를 분석하여 문제를 생성하세요. 이미지의 텍스트 내용을 읽고 그 내용을 바탕으로 문제를 만드세요. 모든 이미지의 내용을 골고루 반영해야 합니다.`,
     });
     messages.push({ role: "user", content: contentParts });
   } else if (params.text) {
