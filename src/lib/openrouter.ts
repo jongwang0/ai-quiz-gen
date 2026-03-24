@@ -3,7 +3,7 @@ import type { Question } from "@/types";
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 // 무료 모델 (비용 $0) - Vision 지원
-const MODEL = "google/gemini-2.0-flash-exp:free";
+const MODEL = "google/gemini-2.0-flash-001";
 
 type ContentPart = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
 
