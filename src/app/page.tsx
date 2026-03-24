@@ -127,7 +127,7 @@ export default function Home() {
           /(\d+)(\s*문제)/g,
           (_, num, suffix) => {
             const original = parseInt(num, 10);
-            const scaled = Math.max(1, Math.ceil(original / batches.length));
+            const scaled = original === 0 ? 0 : Math.max(1, Math.ceil(original / batches.length));
             return `${scaled}${suffix}`;
           }
         );
