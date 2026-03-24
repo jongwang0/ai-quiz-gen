@@ -14,7 +14,7 @@ const MAX_IMAGES = 200;
 const MAX_RAW_SIZE = 10 * 1024 * 1024; // 10MB (압축 전 원본 허용 크기)
 
 export default function InputCard({ onGenerate, isLoading }: InputCardProps) {
-  const [mode, setMode] = useState<InputMode>("text");
+  const [mode, setMode] = useState<InputMode>("image");
   const [text, setText] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
