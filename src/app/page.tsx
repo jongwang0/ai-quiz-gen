@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Header from "@/components/Header";
 import InputCard from "@/components/InputCard";
 import PromptEditor from "@/components/PromptEditor";
@@ -23,8 +23,11 @@ export default function Home() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);
   const [batchProgress, setBatchProgress] = useState("");
-  const [sourceImages, setSourceImages] = useState<string[]>([]);
-  const [questionSourceMap, setQuestionSourceMap] = useState<number[][]>([]);
+  // ref로 관리하여 state batching 타이밍 이슈 방지 + 대용량 base64 데이터 re-render 방지
+  const sourceImagesRef = useRef<string[]>([]);
+  const questionSourceMapRef = useRef<number[][]>([]);
+  // QuizPage에 전달하기 위한 트리거 (ref 변경 시 강제 반영)
+  const [sourceReady, setSourceReady] = useState(false);
 
   // 프롬프트 섹션별 상태
   const [questionCount, setQuestionCount] = useState<string>(PROMPT_SECTIONS.questionCount.defaultValue);
@@ -77,8 +80,9 @@ export default function Home() {
     setSessionId(null);
     setShowQuiz(false);
     setBatchProgress("");
-    setSourceImages([]);
-    setQuestionSourceMap([]);
+    sourceImagesRef.current = [];
+    questionSourceMapRef.current = [];
+    setSourceReady(false);
 
     try {
       const customPrompt = buildPrompt();
@@ -110,9 +114,10 @@ export default function Home() {
 
         // 소스 이미지 매핑 (단일 호출: 모든 문제가 같은 이미지 세트 참조)
         if (data.images && data.images.length > 0) {
-          setSourceImages(data.images);
+          sourceImagesRef.current = data.images;
           const allIndices = data.images.map((_, i) => i);
-          setQuestionSourceMap(result.questions.map(() => allIndices));
+          questionSourceMapRef.current = result.questions.map(() => allIndices);
+          setSourceReady(true);
         }
 
         setShowQuiz(true);
@@ -195,8 +200,9 @@ export default function Home() {
         ? allSourceMap.slice(0, requestedTotal)
         : allSourceMap;
 
-      setSourceImages(allImages);
-      setQuestionSourceMap(finalSourceMap);
+      sourceImagesRef.current = allImages;
+      questionSourceMapRef.current = finalSourceMap;
+      setSourceReady(true);
       setBatchProgress("");
       setQuestions(finalQuestions);
       setShowQuiz(true);
@@ -219,8 +225,8 @@ export default function Home() {
           questions={questions}
           sessionId={sessionId}
           onBack={() => setShowQuiz(false)}
-          sourceImages={sourceImages.length > 0 ? sourceImages : undefined}
-          questionSourceMap={questionSourceMap.length > 0 ? questionSourceMap : undefined}
+          sourceImages={sourceReady ? sourceImagesRef.current : undefined}
+          questionSourceMap={sourceReady ? questionSourceMapRef.current : undefined}
         />
       </main>
     );
