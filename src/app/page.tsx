@@ -6,7 +6,7 @@ import InputCard from "@/components/InputCard";
 import PromptEditor from "@/components/PromptEditor";
 import QuizPage from "@/components/QuizPage";
 import PenguinDot, { PenguinLoading } from "@/components/PenguinDot";
-import { PROMPT_SECTIONS } from "@/lib/prompts";
+import { PROMPT_SECTIONS, buildPromptFromSections } from "@/lib/prompts";
 import type { Question } from "@/types";
 
 /** 프롬프트에서 사용자가 요청한 총 문제 수 파싱 */
@@ -34,37 +34,7 @@ export default function Home() {
 
   const buildPrompt = () => {
     if (!isPromptModified) return undefined;
-
-    return `당신은 전문 시험 문제 출제자입니다. 제공된 자료(텍스트 또는 이미지)를 바탕으로 CBT(컴퓨터 기반 시험) 형식의 문제를 생성하세요.
-
-생성할 문제 수:
-${questionCount}
-
-아래 JSON 형식으로만 응답하세요:
-{
-  "questions": [
-    {
-      "type": "multiple_choice",
-      "question": "...",
-      "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
-      "answer": "A"
-    },
-    {
-      "type": "short_answer",
-      "question": "...",
-      "answer": "..."
-    },
-    {
-      "type": "essay",
-      "question": "...",
-      "guidelines": "..."
-    }
-  ]
-}
-
-규칙:
-${rules.split("\n").map((r) => `- ${r}`).join("\n")}
-- JSON 객체만 반환하세요 (마크다운 포맷 없이)`;
+    return buildPromptFromSections(questionCount, rules);
   };
 
   const resetPrompt = () => {
@@ -153,48 +123,15 @@ ${rules.split("\n").map((r) => `- ${r}`).join("\n")}
       // 배치당 생성할 문제 수 계산
       let perBatchPrompt = customPrompt;
       if (requestedTotal && batches.length > 1) {
-        // 사용자가 요청한 문제 수를 배치 수로 나눠서 각 배치에 할당
-        const perBatch = Math.ceil(requestedTotal / batches.length);
-        // questionCount 부분만 배치 단위로 교체
         const batchQuestionCount = questionCount.replace(
           /(\d+)(\s*문제)/g,
           (_, num, suffix) => {
             const original = parseInt(num, 10);
-            const scaled = Math.max(1, Math.ceil((original / requestedTotal) * perBatch * batches.length / batches.length));
+            const scaled = Math.max(1, Math.ceil(original / batches.length));
             return `${scaled}${suffix}`;
           }
         );
-        perBatchPrompt = `당신은 전문 시험 문제 출제자입니다. 제공된 자료(텍스트 또는 이미지)를 바탕으로 CBT(컴퓨터 기반 시험) 형식의 문제를 생성하세요.
-
-생성할 문제 수:
-${batchQuestionCount}
-
-아래 JSON 형식으로만 응답하세요:
-{
-  "questions": [
-    {
-      "type": "multiple_choice",
-      "question": "...",
-      "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
-      "answer": "A"
-    },
-    {
-      "type": "short_answer",
-      "question": "...",
-      "answer": "..."
-    },
-    {
-      "type": "essay",
-      "question": "...",
-      "guidelines": "..."
-    }
-  ]
-}
-
-규칙:
-${rules.split("\n").map((r) => `- ${r}`).join("\n")}
-- JSON 객체만 반환하세요 (마크다운 포맷 없이)
-- 정확히 지정된 문제 수만큼만 생성하세요. 그 이상 생성하지 마세요.`;
+        perBatchPrompt = buildPromptFromSections(batchQuestionCount, rules);
       }
 
       const allQuestions: Question[] = [];
