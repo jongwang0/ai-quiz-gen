@@ -6,10 +6,11 @@ import type { Question } from "@/types";
 interface QuizPageProps {
   questions: Question[];
   sessionId?: string | null;
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 const ITEMS_PER_PAGE = 5;
+const MAX_VISIBLE_PAGES = 10;
 
 export default function QuizPage({ questions, sessionId, onBack }: QuizPageProps) {
   const [currentPage, setCurrentPage] = useState(0);
@@ -22,6 +23,19 @@ export default function QuizPage({ questions, sessionId, onBack }: QuizPageProps
     (currentPage + 1) * ITEMS_PER_PAGE
   );
 
+  // 페이지네이션에 보여줄 페이지 번호 범위 계산
+  const visiblePageRange = useMemo(() => {
+    if (totalPages <= MAX_VISIBLE_PAGES) {
+      return Array.from({ length: totalPages }, (_, i) => i);
+    }
+    let start = Math.max(0, currentPage - Math.floor(MAX_VISIBLE_PAGES / 2));
+    const end = Math.min(totalPages, start + MAX_VISIBLE_PAGES);
+    if (end - start < MAX_VISIBLE_PAGES) {
+      start = Math.max(0, end - MAX_VISIBLE_PAGES);
+    }
+    return Array.from({ length: end - start }, (_, i) => start + i);
+  }, [currentPage, totalPages]);
+
   const allAnswered = useMemo(() => {
     return questions.every((_, i) => answers[i] !== undefined && answers[i].trim() !== "");
   }, [answers, questions]);
@@ -32,11 +46,9 @@ export default function QuizPage({ questions, sessionId, onBack }: QuizPageProps
     questions.forEach((q, i) => {
       const userAnswer = (answers[i] || "").trim();
       if (q.type === "multiple_choice") {
-        // 정답: "A", 사용자 선택: "A. ..."에서 앞글자 추출
         const userLetter = userAnswer.charAt(0).toUpperCase();
         if (userLetter === q.answer.charAt(0).toUpperCase()) correct++;
       }
-      // 주관식/서술형은 자동 채점하지 않고 답 비교만 표시
     });
     return { correct, total: questions.filter((q) => q.type === "multiple_choice").length };
   }, [submitted, answers, questions]);
@@ -70,16 +82,28 @@ export default function QuizPage({ questions, sessionId, onBack }: QuizPageProps
   return (
     <div className="max-w-4xl mx-auto">
       {/* 상단 헤더 */}
-      <div className="flex items-center justify-between mb-6">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-          </svg>
-          돌아가기
-        </button>
+      <div className="flex items-center justify-between mb-6 animate-fade-in">
+        {onBack ? (
+          <button
+            onClick={onBack}
+            className="flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+            </svg>
+            돌아가기
+          </button>
+        ) : (
+          <a
+            href="/"
+            className="flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-300 transition-colors group"
+          >
+            <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            나도 문제 만들기
+          </a>
+        )}
 
         <div className="flex items-center gap-3">
           {sessionId && (
@@ -101,7 +125,7 @@ export default function QuizPage({ questions, sessionId, onBack }: QuizPageProps
 
       {/* 채점 결과 */}
       {submitted && score && (
-        <div className="glass p-5 mb-6 flex items-center justify-between">
+        <div className="glass p-5 mb-6 flex items-center justify-between animate-scale-in">
           <div>
             <h3 className="text-sm font-medium text-zinc-300 mb-1">채점 결과</h3>
             <p className="text-xs text-zinc-500">
@@ -130,7 +154,7 @@ export default function QuizPage({ questions, sessionId, onBack }: QuizPageProps
         {pageQuestions.map((q, localIdx) => {
           const globalIdx = getGlobalIndex(localIdx);
           return (
-            <div key={globalIdx} className="glass p-5">
+            <div key={globalIdx} className="glass p-5 animate-slide-up glass-hover" style={{ animationDelay: `${localIdx * 0.05}s` }}>
               {/* 문제 유형 뱃지 */}
               <div className="flex items-center gap-2 mb-3">
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
@@ -149,6 +173,17 @@ export default function QuizPage({ questions, sessionId, onBack }: QuizPageProps
                 <span className="text-zinc-500 mr-2 font-medium">{globalIdx + 1}.</span>
                 {q.question}
               </p>
+
+              {/* 이미지가 있는 문제 */}
+              {q.image_url && q.image_url.startsWith("data:") && (
+                <div className="mb-4 ml-4">
+                  <img
+                    src={q.image_url}
+                    alt="문제 참고 이미지"
+                    className="max-w-full max-h-64 rounded-lg border border-white/10 object-contain bg-black/20"
+                  />
+                </div>
+              )}
 
               {/* 객관식 선택지 */}
               {q.type === "multiple_choice" && (
@@ -271,8 +306,23 @@ export default function QuizPage({ questions, sessionId, onBack }: QuizPageProps
           이전
         </button>
 
-        <div className="flex items-center gap-2">
-          {Array.from({ length: totalPages }, (_, i) => (
+        <div className="flex items-center gap-1">
+          {/* 첫 페이지로 */}
+          {visiblePageRange[0] > 0 && (
+            <>
+              <button
+                onClick={() => setCurrentPage(0)}
+                className="w-8 h-8 rounded-lg text-xs font-medium text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-all"
+              >
+                1
+              </button>
+              {visiblePageRange[0] > 1 && (
+                <span className="text-zinc-600 text-xs px-1">...</span>
+              )}
+            </>
+          )}
+
+          {visiblePageRange.map((i) => (
             <button
               key={i}
               onClick={() => setCurrentPage(i)}
@@ -285,6 +335,21 @@ export default function QuizPage({ questions, sessionId, onBack }: QuizPageProps
               {i + 1}
             </button>
           ))}
+
+          {/* 마지막 페이지로 */}
+          {visiblePageRange[visiblePageRange.length - 1] < totalPages - 1 && (
+            <>
+              {visiblePageRange[visiblePageRange.length - 1] < totalPages - 2 && (
+                <span className="text-zinc-600 text-xs px-1">...</span>
+              )}
+              <button
+                onClick={() => setCurrentPage(totalPages - 1)}
+                className="w-8 h-8 rounded-lg text-xs font-medium text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-all"
+              >
+                {totalPages}
+              </button>
+            </>
+          )}
         </div>
 
         <div className="flex items-center gap-3">

@@ -85,6 +85,25 @@ export async function POST(request: NextRequest) {
       systemPrompt,
     });
 
+    // image_url 필드를 실제 이미지 데이터로 매핑
+    if (images && images.length > 0) {
+      for (const q of questions) {
+        if (q.image_url) {
+          const match = q.image_url.match(/image_(\d+)/);
+          if (match) {
+            const idx = parseInt(match[1], 10) - 1;
+            if (idx >= 0 && idx < images.length) {
+              q.image_url = images[idx];
+            } else {
+              q.image_url = undefined;
+            }
+          } else {
+            q.image_url = undefined;
+          }
+        }
+      }
+    }
+
     return NextResponse.json({ questions });
   } catch (error) {
     console.error("Generate error:", error);

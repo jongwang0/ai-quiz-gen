@@ -103,7 +103,7 @@ export default function InputCard({ onGenerate, isLoading }: InputCardProps) {
     (mode === "image" && images.length > 0);
 
   return (
-    <div className="glass p-6 flex flex-col h-full">
+    <div className="glass p-6 flex flex-col h-full glass-hover">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-wider">
           입력 소스

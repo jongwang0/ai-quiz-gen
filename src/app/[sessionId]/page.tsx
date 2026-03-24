@@ -2,7 +2,8 @@
 
 import { useEffect, useState, use } from "react";
 import Header from "@/components/Header";
-import OutputCard from "@/components/OutputCard";
+import QuizPage from "@/components/QuizPage";
+import { PenguinLoading } from "@/components/PenguinDot";
 import type { Question } from "@/types";
 
 interface SessionData {
@@ -36,28 +37,36 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
   }, [sessionId]);
 
   return (
-    <main className="max-w-3xl mx-auto px-6 pb-12">
+    <main className="max-w-6xl mx-auto px-6 pb-12">
       <Header />
-      {error ? (
-        <div className="glass p-8 text-center">
-          <p className="text-zinc-400">{error}</p>
-          <a href="/" className="text-sm text-zinc-500 hover:text-zinc-300 mt-4 inline-block transition-colors">
-            &larr; 홈으로 돌아가기
+      {isLoading ? (
+        <div className="glass p-12 flex items-center justify-center animate-fade-in">
+          <PenguinLoading message="문제를 불러오는 중..." />
+        </div>
+      ) : error ? (
+        <div className="glass p-8 text-center animate-fade-in">
+          <p className="text-zinc-400 mb-4">{error}</p>
+          <a
+            href="/"
+            className="inline-flex items-center gap-2 btn-primary text-sm"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            직접 문제 만들기
           </a>
         </div>
-      ) : (
+      ) : session ? (
         <>
-          {session && (
-            <p className="text-xs text-zinc-600 mb-4">
-              {new Date(session.created_at).toLocaleString("ko-KR")} 에 생성됨
-            </p>
-          )}
-          <OutputCard
-            questions={session?.questions || []}
-            isLoading={isLoading}
+          <p className="text-xs text-zinc-600 mb-4 animate-fade-in">
+            {new Date(session.created_at).toLocaleString("ko-KR")} 에 생성됨
+          </p>
+          <QuizPage
+            questions={session.questions}
+            sessionId={session.id}
           />
         </>
-      )}
+      ) : null}
     </main>
   );
 }
