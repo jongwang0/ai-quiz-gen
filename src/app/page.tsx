@@ -87,43 +87,97 @@ ${rules.split("\n").map((r) => `- ${r}`).join("\n")}
     }
   };
 
+  const [batchProgress, setBatchProgress] = useState("");
+
+  const BATCH_SIZE = 10; // 이미지 배치 크기
+
   const handleGenerate = async (data: { text?: string; images?: string[] }) => {
     setIsLoading(true);
     setQuestions([]);
     setSessionId(null);
     setShowQuiz(false);
+    setBatchProgress("");
 
     try {
-      const body: Record<string, unknown> = {};
-      if (data.text) body.text = data.text;
-      if (data.images && data.images.length > 0) body.images = data.images;
       const customPrompt = buildPrompt();
-      if (customPrompt) body.prompt = customPrompt;
 
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      // 텍스트 모드 또는 이미지 10장 이하: 단일 호출
+      if (data.text || !data.images || data.images.length <= BATCH_SIZE) {
+        const body: Record<string, unknown> = {};
+        if (data.text) body.text = data.text;
+        if (data.images && data.images.length > 0) body.images = data.images;
+        if (customPrompt) body.prompt = customPrompt;
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        throw new Error(errorData?.error || "생성에 실패했습니다");
+        const res = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => null);
+          throw new Error(errorData?.error || "생성에 실패했습니다");
+        }
+
+        const result = await res.json();
+        setQuestions(result.questions);
+        setShowQuiz(true);
+
+        const sourceType = data.images ? "image" : "text";
+        const sourceText = data.text || null;
+        saveSession(sourceType, sourceText, result.questions);
+        return;
       }
 
-      const result = await res.json();
-      setQuestions(result.questions);
-      setShowQuiz(true);
+      // 이미지 배치 처리 (10장씩)
+      const allImages = data.images;
+      const batches: string[][] = [];
+      for (let i = 0; i < allImages.length; i += BATCH_SIZE) {
+        batches.push(allImages.slice(i, i + BATCH_SIZE));
+      }
 
-      // 자동 저장
-      const sourceType = data.images ? "image" : "text";
-      const sourceText = data.text || null;
-      saveSession(sourceType, sourceText, result.questions);
+      const allQuestions: Question[] = [];
+      for (let i = 0; i < batches.length; i++) {
+        setBatchProgress(`배치 ${i + 1}/${batches.length} 처리 중... (${allQuestions.length}문제 생성됨)`);
+
+        const body: Record<string, unknown> = { images: batches[i] };
+        if (customPrompt) body.prompt = customPrompt;
+
+        const res = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => null);
+          const errMsg = errorData?.error || "생성 실패";
+          // 배치 실패 시 이미 생성된 문제가 있으면 계속 진행
+          if (allQuestions.length > 0) {
+            console.warn(`배치 ${i + 1} 실패: ${errMsg}, 기존 문제로 계속 진행`);
+            continue;
+          }
+          throw new Error(errMsg);
+        }
+
+        const result = await res.json();
+        allQuestions.push(...result.questions);
+      }
+
+      if (allQuestions.length === 0) {
+        throw new Error("문제를 생성하지 못했습니다");
+      }
+
+      setBatchProgress("");
+      setQuestions(allQuestions);
+      setShowQuiz(true);
+      saveSession("image", null, allQuestions);
     } catch (err) {
       console.error(err);
       alert(err instanceof Error ? err.message : "오류가 발생했습니다");
     } finally {
       setIsLoading(false);
+      setBatchProgress("");
     }
   };
 
@@ -166,7 +220,9 @@ ${rules.split("\n").map((r) => `- ${r}`).join("\n")}
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                <p className="text-zinc-500 text-sm">AI가 문제를 생성하고 있습니다...</p>
+                <p className="text-zinc-500 text-sm">
+                  {batchProgress || "AI가 문제를 생성하고 있습니다..."}
+                </p>
               </div>
             ) : (
               <div className="text-center">

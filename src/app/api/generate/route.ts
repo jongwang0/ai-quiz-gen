@@ -4,7 +4,7 @@ import { DEFAULT_PROMPT } from "@/lib/prompts";
 
 // --- Rate Limiting (in-memory) ---
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 5;           // 최대 요청 수
+const RATE_LIMIT = 30;          // 최대 요청 수 (배치 처리 지원)
 const RATE_WINDOW = 60 * 1000;  // 1분 윈도우
 
 function isRateLimited(ip: string): boolean {
@@ -22,8 +22,8 @@ function isRateLimited(ip: string): boolean {
 
 // --- 제한 상수 ---
 const MAX_TEXT_LENGTH = 10000;    // 텍스트 최대 10,000자
-const MAX_IMAGES = 5;            // 이미지 최대 5장
-const MAX_IMAGE_SIZE = 2_000_000; // base64 문자열 최대 ~1.5MB 원본
+const MAX_IMAGES = 10;            // 배치당 이미지 최대 10장
+const MAX_IMAGE_SIZE = 2_000_000; // base64 문자열 최대 ~1.5MB 원본 (압축 후)
 
 export async function POST(request: NextRequest) {
   try {

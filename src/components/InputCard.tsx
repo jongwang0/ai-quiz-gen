@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { compressImage } from "@/lib/imageCompress";
 
 type InputMode = "text" | "image";
 
@@ -9,7 +10,8 @@ interface InputCardProps {
   isLoading: boolean;
 }
 
-const MAX_IMAGE_SIZE = 4 * 1024 * 1024; // 4MB
+const MAX_IMAGES = 200;
+const MAX_RAW_SIZE = 10 * 1024 * 1024; // 10MB (압축 전 원본 허용 크기)
 
 export default function InputCard({ onGenerate, isLoading }: InputCardProps) {
   const [mode, setMode] = useState<InputMode>("text");
@@ -27,32 +29,38 @@ export default function InputCard({ onGenerate, isLoading }: InputCardProps) {
     }
   };
 
-  const processFiles = (files: FileList | null) => {
+  const [compressing, setCompressing] = useState(false);
+  const [compressProgress, setCompressProgress] = useState("");
+
+  const processFiles = async (files: FileList | null) => {
     if (!files) return;
     const imageFiles = Array.from(files).filter(
-      (f) => f.type.startsWith("image/") && f.size <= MAX_IMAGE_SIZE
+      (f) => f.type.startsWith("image/") && f.size <= MAX_RAW_SIZE
     );
 
     const skipped = Array.from(files).length - imageFiles.length;
     if (skipped > 0) {
-      alert(`${skipped}개 파일이 건너뛰어졌습니다 (이미지가 아니거나 4MB 초과)`);
+      alert(`${skipped}개 파일이 건너뛰어졌습니다 (이미지가 아니거나 10MB 초과)`);
     }
 
     if (imageFiles.length === 0) return;
 
-    // 최대 5장 제한
+    // 최대 200장 제한
     const currentCount = images.length;
-    const maxAdd = 5 - currentCount;
+    const maxAdd = MAX_IMAGES - currentCount;
     if (maxAdd <= 0) {
-      alert("이미지는 최대 5장까지 선택할 수 있습니다");
+      alert(`이미지는 최대 ${MAX_IMAGES}장까지 선택할 수 있습니다`);
       return;
     }
     const filesToProcess = imageFiles.slice(0, maxAdd);
     if (filesToProcess.length < imageFiles.length) {
-      alert(`최대 5장 제한으로 ${filesToProcess.length}장만 추가됩니다`);
+      alert(`최대 ${MAX_IMAGES}장 제한으로 ${filesToProcess.length}장만 추가됩니다`);
     }
 
-    const promises = filesToProcess.map(
+    setCompressing(true);
+
+    // 파일 → base64 변환
+    const rawPromises = filesToProcess.map(
       (file) =>
         new Promise<string>((resolve) => {
           const reader = new FileReader();
@@ -60,11 +68,19 @@ export default function InputCard({ onGenerate, isLoading }: InputCardProps) {
           reader.readAsDataURL(file);
         })
     );
+    const rawImages = await Promise.all(rawPromises);
 
-    Promise.all(promises).then((results) => {
-      setImages((prev) => [...prev, ...results]);
-      setCurrentIndex(0);
-    });
+    // 압축 처리
+    const compressed: string[] = [];
+    for (let i = 0; i < rawImages.length; i++) {
+      setCompressProgress(`이미지 압축 중... ${i + 1}/${rawImages.length}`);
+      compressed.push(await compressImage(rawImages[i]));
+    }
+
+    setImages((prev) => [...prev, ...compressed]);
+    setCurrentIndex(0);
+    setCompressing(false);
+    setCompressProgress("");
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -250,13 +266,14 @@ export default function InputCard({ onGenerate, isLoading }: InputCardProps) {
 
       <div className="mt-4 flex items-center justify-between">
         <span className="text-xs text-zinc-600">
-          {mode === "text" && text.length > 0 ? `${text.length}자` : ""}
-          {mode === "image" && images.length > 0 ? `${images.length}장 선택됨` : ""}
+          {compressing ? compressProgress : ""}
+          {!compressing && mode === "text" && text.length > 0 ? `${text.length}자` : ""}
+          {!compressing && mode === "image" && images.length > 0 ? `${images.length}장 선택됨 (최대 ${MAX_IMAGES}장)` : ""}
         </span>
         <button
           className="btn-primary flex items-center gap-2"
           onClick={handleGenerate}
-          disabled={!canGenerate || isLoading}
+          disabled={!canGenerate || isLoading || compressing}
         >
           {isLoading ? (
             <>
