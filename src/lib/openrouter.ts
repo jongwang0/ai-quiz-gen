@@ -55,7 +55,7 @@ export async function generateQuestions(params: {
       model: MODEL,
       messages,
       response_format: { type: "json_object" },
-      max_tokens: 8192,
+      max_tokens: 16384,
     }),
   });
 
@@ -115,12 +115,36 @@ function parseJsonSafe(raw: string): { questions: Question[] } {
     // 복구 실패
   }
 
-  // 3차 시도: questions 배열만 정규식으로 추출
+  // 3차 시도: 개별 문제 객체를 하나씩 추출
   try {
-    const matches = [...raw.matchAll(/\{[^{}]*"type"\s*:\s*"(multiple_choice|short_answer|essay)"[^{}]*\}/g)];
-    if (matches.length > 0) {
-      const questions = matches.map(m => JSON.parse(m[0]));
-      return { questions: questions as Question[] };
+    const questions: Question[] = [];
+    // "type": "..." 패턴이 나오는 위치를 찾아 각 문제 객체를 추출
+    const typePattern = /"type"\s*:\s*"(multiple_choice|short_answer|essay)"/g;
+    let typeMatch;
+    while ((typeMatch = typePattern.exec(raw)) !== null) {
+      // 이 type 앞의 { 찾기
+      let braceStart = raw.lastIndexOf("{", typeMatch.index);
+      if (braceStart === -1) continue;
+      // 중괄호 매칭으로 객체 끝 찾기
+      let depth = 0;
+      let end = -1;
+      for (let i = braceStart; i < raw.length; i++) {
+        if (raw[i] === "{") depth++;
+        else if (raw[i] === "}") {
+          depth--;
+          if (depth === 0) { end = i; break; }
+        }
+      }
+      if (end === -1) continue;
+      try {
+        const obj = JSON.parse(raw.substring(braceStart, end + 1));
+        if (obj.type && obj.question) questions.push(obj);
+      } catch {
+        // 개별 객체 파싱 실패, 건너뛰기
+      }
+    }
+    if (questions.length > 0) {
+      return { questions };
     }
   } catch {
     // 추출 실패
