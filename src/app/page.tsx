@@ -23,6 +23,8 @@ export default function Home() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);
   const [batchProgress, setBatchProgress] = useState("");
+  const [sourceImages, setSourceImages] = useState<string[]>([]);
+  const [questionSourceMap, setQuestionSourceMap] = useState<number[][]>([]);
 
   // 프롬프트 섹션별 상태
   const [questionCount, setQuestionCount] = useState<string>(PROMPT_SECTIONS.questionCount.defaultValue);
@@ -75,6 +77,8 @@ export default function Home() {
     setSessionId(null);
     setShowQuiz(false);
     setBatchProgress("");
+    setSourceImages([]);
+    setQuestionSourceMap([]);
 
     try {
       const customPrompt = buildPrompt();
@@ -103,6 +107,14 @@ export default function Home() {
 
         const result = await res.json();
         setQuestions(result.questions);
+
+        // 소스 이미지 매핑 (단일 호출: 모든 문제가 같은 이미지 세트 참조)
+        if (data.images && data.images.length > 0) {
+          setSourceImages(data.images);
+          const allIndices = data.images.map((_, i) => i);
+          setQuestionSourceMap(result.questions.map(() => allIndices));
+        }
+
         setShowQuiz(true);
 
         const sourceType = data.images ? "image" : "text";
@@ -135,6 +147,7 @@ export default function Home() {
       }
 
       const allQuestions: Question[] = [];
+      const allSourceMap: number[][] = [];
       for (let i = 0; i < batches.length; i++) {
         // 이미 충분한 문제가 생성되었으면 조기 종료
         if (requestedTotal && allQuestions.length >= requestedTotal) break;
@@ -161,6 +174,12 @@ export default function Home() {
         }
 
         const result = await res.json();
+        // 이 배치의 소스 이미지 인덱스 (전체 이미지 배열 기준)
+        const batchStartIdx = i * BATCH_SIZE;
+        const batchIndices = batches[i].map((_, j) => batchStartIdx + j);
+        for (const _ of result.questions) {
+          allSourceMap.push(batchIndices);
+        }
         allQuestions.push(...result.questions);
       }
 
@@ -172,7 +191,12 @@ export default function Home() {
       const finalQuestions = requestedTotal
         ? allQuestions.slice(0, requestedTotal)
         : allQuestions;
+      const finalSourceMap = requestedTotal
+        ? allSourceMap.slice(0, requestedTotal)
+        : allSourceMap;
 
+      setSourceImages(allImages);
+      setQuestionSourceMap(finalSourceMap);
       setBatchProgress("");
       setQuestions(finalQuestions);
       setShowQuiz(true);
@@ -195,6 +219,8 @@ export default function Home() {
           questions={questions}
           sessionId={sessionId}
           onBack={() => setShowQuiz(false)}
+          sourceImages={sourceImages.length > 0 ? sourceImages : undefined}
+          questionSourceMap={questionSourceMap.length > 0 ? questionSourceMap : undefined}
         />
       </main>
     );

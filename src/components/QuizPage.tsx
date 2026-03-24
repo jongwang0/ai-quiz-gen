@@ -7,6 +7,8 @@ interface QuizPageProps {
   questions: Question[];
   sessionId?: string | null;
   onBack?: () => void;
+  sourceImages?: string[];
+  questionSourceMap?: number[][];
 }
 
 const ITEMS_PER_PAGE = 5;
@@ -59,7 +61,50 @@ function ImageLightbox({ src, onClose }: {
   );
 }
 
-export default function QuizPage({ questions, sessionId, onBack }: QuizPageProps) {
+/** 출처 이미지 토글 섹션 */
+function SourceImages({ images, onClickImage }: {
+  images: string[];
+  onClickImage: (src: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  if (images.length === 0) return null;
+
+  return (
+    <div className="mt-3 ml-4">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors group"
+      >
+        <svg
+          className={`w-3 h-3 transition-transform duration-200 ${open ? "rotate-90" : ""}`}
+          fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+        </svg>
+        <svg className="w-3.5 h-3.5 opacity-60" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v13.5A1.5 1.5 0 0 0 3.75 21Z" />
+        </svg>
+        출처 이미지 ({images.length}장)
+      </button>
+      {open && (
+        <div className="mt-2 flex flex-wrap gap-2 animate-fade-in">
+          {images.map((src, i) => (
+            <img
+              key={i}
+              src={src}
+              alt={`출처 ${i + 1}`}
+              className="w-20 h-20 object-cover rounded-lg border border-white/10 bg-black/20 cursor-zoom-in hover:border-white/25 hover:scale-105 transition-all"
+              onClick={() => onClickImage(src)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function QuizPage({ questions, sessionId, onBack, sourceImages, questionSourceMap }: QuizPageProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -340,6 +385,14 @@ export default function QuizPage({ questions, sessionId, onBack }: QuizPageProps
                     </div>
                   )}
                 </div>
+              )}
+
+              {/* 출처 이미지 */}
+              {sourceImages && questionSourceMap?.[globalIdx] && (
+                <SourceImages
+                  images={questionSourceMap[globalIdx].map(idx => sourceImages[idx])}
+                  onClickImage={openLightbox}
+                />
               )}
             </div>
           );
