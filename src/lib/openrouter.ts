@@ -54,6 +54,8 @@ export async function generateQuestions(params: {
     body: JSON.stringify({
       model: MODEL,
       messages,
+      response_format: { type: "json_object" },
+      max_tokens: 8192,
     }),
   });
 
@@ -69,14 +71,62 @@ export async function generateQuestions(params: {
     throw new Error("API 응답이 비어있습니다");
   }
 
-  // Strip markdown code fences if present
-  const jsonStr = content.replace(/^```(?:json)?\n?/gm, "").replace(/\n?```$/gm, "").trim();
+  const parsed = parseJsonSafe(content);
 
-  const parsed = JSON.parse(jsonStr);
+  if (!parsed?.questions || !Array.isArray(parsed.questions)) {
+    throw new Error("AI가 올바른 형식의 문제를 생성하지 못했습니다. 다시 시도해주세요.");
+  }
 
   // 문제 순서 셔플
   const questions: Question[] = parsed.questions;
   return shuffleArray(questions);
+}
+
+/**
+ * JSON 파싱 (마크다운 코드 블록 제거 + 잘린 JSON 복구)
+ */
+function parseJsonSafe(raw: string): { questions: Question[] } {
+  // 마크다운 코드 블록 제거
+  let str = raw.replace(/^```(?:json)?\n?/gm, "").replace(/\n?```$/gm, "").trim();
+
+  // 1차 시도: 그대로 파싱
+  try {
+    return JSON.parse(str);
+  } catch {
+    // 파싱 실패 시 복구 시도
+  }
+
+  // 2차 시도: 잘린 JSON 복구 - 닫히지 않은 괄호 닫기
+  try {
+    // 마지막 완전한 객체까지만 자르기
+    const lastComplete = str.lastIndexOf("}");
+    if (lastComplete > 0) {
+      str = str.substring(0, lastComplete + 1);
+      // 닫히지 않은 배열/객체 괄호 추가
+      const opens = (str.match(/\[/g) || []).length;
+      const closes = (str.match(/\]/g) || []).length;
+      for (let i = 0; i < opens - closes; i++) str += "]";
+      const openBraces = (str.match(/\{/g) || []).length;
+      const closeBraces = (str.match(/\}/g) || []).length;
+      for (let i = 0; i < openBraces - closeBraces; i++) str += "}";
+      return JSON.parse(str);
+    }
+  } catch {
+    // 복구 실패
+  }
+
+  // 3차 시도: questions 배열만 정규식으로 추출
+  try {
+    const matches = [...raw.matchAll(/\{[^{}]*"type"\s*:\s*"(multiple_choice|short_answer|essay)"[^{}]*\}/g)];
+    if (matches.length > 0) {
+      const questions = matches.map(m => JSON.parse(m[0]));
+      return { questions: questions as Question[] };
+    }
+  } catch {
+    // 추출 실패
+  }
+
+  throw new Error("AI 응답을 파싱할 수 없습니다. 다시 시도해주세요.");
 }
 
 function shuffleArray<T>(array: T[]): T[] {
