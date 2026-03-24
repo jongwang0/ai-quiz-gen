@@ -79,11 +79,22 @@ export async function POST(request: NextRequest) {
     // 프롬프트 길이 제한
     const systemPrompt = prompt && prompt.length < 5000 ? prompt : DEFAULT_PROMPT;
 
-    const questions = await generateQuestions({
+    let questions = await generateQuestions({
       text,
       images,
       systemPrompt,
     });
+
+    // 프롬프트에서 0문제로 지정된 유형 서버 사이드 필터링
+    const usedPrompt = systemPrompt;
+    const mcMatch = usedPrompt.match(/객관식\s*(\d+)\s*문제/);
+    const saMatch = usedPrompt.match(/주관식\s*(\d+)\s*문제/);
+    const essayMatch = usedPrompt.match(/서술형\s*(\d+)\s*문제/);
+    const allowedTypes = new Set<string>();
+    if (!mcMatch || parseInt(mcMatch[1]) > 0) allowedTypes.add("multiple_choice");
+    if (!saMatch || parseInt(saMatch[1]) > 0) allowedTypes.add("short_answer");
+    if (!essayMatch || parseInt(essayMatch[1]) > 0) allowedTypes.add("essay");
+    questions = questions.filter(q => allowedTypes.has(q.type));
 
     // image_url 필드를 실제 이미지 데이터로 매핑
     if (images && images.length > 0) {

@@ -40,7 +40,8 @@ function buildJsonSchema(counts: { mc: number; sa: number; essay: number }): str
       "question": "...",
       "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
       "answer": "A",
-      "image_url": null
+      "image_url": null,
+      "image_crop": null
     }`);
   }
 
@@ -49,7 +50,8 @@ function buildJsonSchema(counts: { mc: number; sa: number; essay: number }): str
       "type": "short_answer",
       "question": "...",
       "answer": "...",
-      "image_url": null
+      "image_url": null,
+      "image_crop": null
     }`);
   }
 
@@ -58,7 +60,8 @@ function buildJsonSchema(counts: { mc: number; sa: number; essay: number }): str
       "type": "essay",
       "question": "...",
       "guidelines": "...",
-      "image_url": null
+      "image_url": null,
+      "image_crop": null
     }`);
   }
 
@@ -99,7 +102,7 @@ ${rulesText.split("\n").map((r) => `- ${r}`).join("\n")}
 ${exclusionRules}
 - 문제 순서를 무작위로 섞어서 출제하세요 (자료의 순서대로 출제하지 마세요)
 - 여러 이미지가 제공된 경우 모든 이미지의 내용을 골고루 반영하세요
-- 이미지 속에 그래프, 도표, 다이어그램, 참고 이미지 등 문제 출제에 활용할 수 있는 시각 자료가 있다면 반드시 해당 이미지를 참조하는 문제를 출제하세요. 이 경우 image_url 필드에 해당 이미지의 번호를 "image_1", "image_2" 형태로 지정하세요. 문제 텍스트에는 "다음 이미지를 보고" 또는 "[이미지 참조]"를 포함하세요. 시각 자료가 있는 이미지는 최대한 활용하세요
+- 이미지 속에 그래프, 도표, 다이어그램, 참고 이미지 등 문제 출제에 활용할 수 있는 시각 자료가 있다면 반드시 해당 이미지를 참조하는 문제를 출제하세요. image_url에 "image_1" 형태로, image_crop에 해당 시각 자료의 위치를 백분율(%)로 지정하세요: {"top": 0~100, "left": 0~100, "width": 0~100, "height": 0~100}. 예: 이미지 상단 절반만 참조하려면 {"top": 0, "left": 0, "width": 100, "height": 50}. 문제 텍스트에는 "다음 이미지를 보고" 또는 "[이미지 참조]"를 포함하세요
 - 정확히 지정된 문제 수만큼만 생성하세요. 그 이상 생성하지 마세요
 - JSON 객체만 반환하세요 (마크다운 포맷 없이)`;
 }

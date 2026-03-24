@@ -1,9 +1,17 @@
+export interface ImageCrop {
+  top: number;    // % (0-100)
+  left: number;   // % (0-100)
+  width: number;  // % (0-100)
+  height: number; // % (0-100)
+}
+
 export interface MultipleChoiceQuestion {
   type: "multiple_choice";
   question: string;
   options: string[];
   answer: string;
-  image_url?: string;  // 이미지 기반 문제용
+  image_url?: string;
+  image_crop?: ImageCrop;
 }
 
 export interface ShortAnswerQuestion {
@@ -11,6 +19,7 @@ export interface ShortAnswerQuestion {
   question: string;
   answer: string;
   image_url?: string;
+  image_crop?: ImageCrop;
 }
 
 export interface EssayQuestion {
@@ -18,6 +27,7 @@ export interface EssayQuestion {
   question: string;
   guidelines: string;
   image_url?: string;
+  image_crop?: ImageCrop;
 }
 
 export type Question = MultipleChoiceQuestion | ShortAnswerQuestion | EssayQuestion;
